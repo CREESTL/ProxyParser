@@ -1,6 +1,6 @@
 ### Quick Overview ###
 
-I needed a list of working proxies for my of my other projects, but I couldn't find any free ones.
+I needed a list of working proxies for one of my other projects, but I couldn't find any free ones.
 
 So I created this little  script to parse working proxies from specific web site.
 
