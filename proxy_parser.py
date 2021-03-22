@@ -66,7 +66,7 @@ class ProxyURLParser:
             print(f'Validating proxy {proxy}...')
             link = 'http://icanhazip.com/'
             try:
-                response = requests.get(link, proxies={'http': proxy, 'https': proxy}, timeout=2)
+                response = requests.get(link, proxies={'https': proxy}, timeout=2)
                 if response.status_code == 200:
                     print(f'GOOD PROXY')
                     self.valid_proxy_list.append(proxy)
