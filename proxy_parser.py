@@ -1,29 +1,34 @@
 import requests
 from bs4 import BeautifulSoup
 
+
 class ProxyURLParser:
+    """
+    Class is used to parse list of working proxies from specific website
+    """
 
     def __init__(self):
         self.ip_list = []
         self.ports_list = []
         self.all_proxy_list = []
         self.valid_proxy_list = []
+        # that's the site to parse
         self.resource_link = 'https://free-proxy-list.net/'
 
-    # function saves all valid proxies into file
     @ staticmethod
     def save_to_file(proxy_list):
+        """ Saves all valid proxies into file """
         with open('valid_proxy.txt', 'w') as f:
             for string in proxy_list:
                 f.write(string + '\n')
 
-    # function reads the list of valid proxies from file
     def read_from_file(self):
+        """ Reads all proxies from file """
         with open('valid_proxy.txt', 'r') as f:
             self.all_proxy_list = f.readlines()
 
-    # function parses all proxies from website
     def get_all_proxies(self):
+        """ Parses all proxies from website"""
         response = requests.get(self.resource_link).text
         soup = BeautifulSoup(response, 'lxml')
 
@@ -35,7 +40,7 @@ class ProxyURLParser:
             td = str(td)[4:-5]
             parts = td.split('.')
             try:
-                if int(parts[0]) in range(0, 200):
+                if int(parts[0]) in range(0, 255):
                     if 7 < len(td) < 15:
                         if int(td[0]) in range(0, 255):
                             self.ip_list.append(td)
@@ -55,15 +60,14 @@ class ProxyURLParser:
         for ip, port in zip(self.ip_list, self.ports_list):
             self.all_proxy_list.append(ip + ":" + port)
 
-    # function checks if each of proxies is working
     def validate_proxies(self):
+        """ Checks if all proxies are working """
         for proxy in self.all_proxy_list:
             print(f'Validating proxy {proxy}...')
             link = 'http://icanhazip.com/'
             try:
                 response = requests.get(link, proxies={'http': proxy, 'https': proxy}, timeout=2)
                 if response.status_code == 200:
-                    print(response.text)
                     print(f'GOOD PROXY')
                     self.valid_proxy_list.append(proxy)
                     self.save_to_file(self.valid_proxy_list)
