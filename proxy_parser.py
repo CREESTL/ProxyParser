@@ -1,7 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 
-
 class ProxyURLParser:
     """
     Class is used to parse list of working proxies from specific website
@@ -36,15 +35,22 @@ class ProxyURLParser:
         tds = list(soup.find_all('td'))
 
         # getting all IPs
-        for td in tds:
-            td = str(td)[4:-5]
-            parts = td.split('.')
+        for i, td in enumerate(tds):
             try:
-                if int(parts[0]) in range(0, 255):
-                    if 7 < len(td) < 15:
-                        if int(td[0]) in range(0, 255):
-                            self.ip_list.append(td)
-            except ValueError:
+                https = str(td)[15:18]
+                # only parsing proxies that support https
+                if https == "yes":
+                    td = tds[i - 6]
+                    td = str(td)[4:-5]
+                    parts = td.split('.')
+                    try:
+                        if int(parts[0]) in range(0, 255):
+                            if 7 < len(td) < 15:
+                                if int(td[0]) in range(0, 255):
+                                    self.ip_list.append(td)
+                    except ValueError:
+                        pass
+            except:
                 pass
 
         # getting all ports
@@ -63,16 +69,28 @@ class ProxyURLParser:
     def validate_proxies(self):
         """ Checks if all proxies are working """
         for proxy in self.all_proxy_list:
-            print(f'Validating proxy {proxy}...')
-            link = 'http://icanhazip.com/'
+            # this is the site used to check if proxy is actually working
+            link = 'https://2ip.ru/'
             try:
+                print(f'Validating proxy {proxy}...')
                 response = requests.get(link, proxies={'https': proxy}, timeout=2)
+                # if connection is successful we need to make sure that 2ip returns proxy ip, not the static one
                 if response.status_code == 200:
                     print(f'GOOD PROXY')
+                    print(f'Checking with 2ip.com ...')
+                    # working with HTML code of response...
+                    t = response.text
+                    prev_string = t.find('<div class="ip" id="d_clip_button">')
+                    t = t[prev_string:prev_string + 100]
+                    cur_string = t.find('<span>')
+                    cur_string = t[cur_string + 1:]
+                    i, j = cur_string.find(">") + 1, cur_string.find("<")
+                    cur_string = cur_string[i:j]
+                    print(f'In response from 2ip.com IP is {cur_string}')
+
                     self.valid_proxy_list.append(proxy)
                     self.save_to_file(self.valid_proxy_list)
+                else:
+                    print(response.status_code)
             except:
                 pass
-
-
-
