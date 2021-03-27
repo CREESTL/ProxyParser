@@ -30,6 +30,8 @@ class ProxyParser:
         self.alive = 0
         # LIFO of proxies
         self.q = queue.Queue()
+        # clear previously written list of proxies
+        self.clear_log()
         # list of sites to parse proxies from
         self.proxy_sources = [
         ["http://spys.me/proxy.txt", "%ip%:%port% "],
@@ -61,6 +63,12 @@ class ProxyParser:
         ["https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json", '"ip": "%ip%",\n.*?"port": "%port%",']
     ]
 
+    def clear_log(self):
+        """ Clears file with list of old proxies (if such exists) """
+        try:
+            f = open('valid_proxy.txt', 'w')
+        except FileNotFoundError:
+            return
 
     def fetch_from_sources(self, url, custom_regex):
         """ Fetches lists of proxies IPs from sites """
@@ -73,6 +81,7 @@ class ProxyParser:
             self.proxies.append(proxy[0] + ":" + proxy[1])
             n += 1
         sys.stdout.write("{0: >5} proxies fetched from {1}\n".format(n, url))
+    
 
     def find_proxies(self):
         """ Creates a file with working proxy IPs """
@@ -92,43 +101,36 @@ class ProxyParser:
         for x in self.proxies:
             self.q.put([x, "N/A"])
 
-        # checking each proxy and writing valid once into file
-        with open(self.output_file, 'w') as f:
 
-            def check_proxies():
+        def check_proxies():
 
-                while not self.q.empty():
-                    proxy = self.q.get()
-                    try:
-                        resp = requests.get(("https" if self.https else "http") + ("://" + self.check_website),
-                                            proxies={'http': 'http://' + proxy[0], 'https': 'http://' + proxy[0]},
-                                            timeout=self.timeout)
-                        if resp.status_code != 200:
-                            pass
-                        f.write("{}|{}|{:.2f}s\n".format(proxy[0], proxy[1], resp.elapsed.total_seconds()))
-                        if self.alive % 30 == 0:
-                            f.flush()
+            while not self.q.empty():
+                proxy = self.q.get()
+                try:
+                    resp = requests.get(("https" if self.https else "http") + ("://" + self.check_website),
+                                        proxies={'http': 'http://' + proxy[0], 'https': 'http://' + proxy[0]},
+                                        timeout=self.timeout)
+                    if resp.status_code == 200:
                         self.alive += 1
-                    except:
-                        self.dead += 1
-
-                    sys.stdout.write(
-                        "\rChecked %{:.2f} - (Alive: {} - Dead: {})".format((self.alive + self.dead) / len(self.proxies) * 100, self.alive, self.dead))
-                    sys.stdout.flush()
-
-            # proxies are checked in multiple threads
-            threads_list = []
-            for i in range(0, self.threads):
-                t = threading.Thread(target=check_proxies)
-                t.start()
-                threads_list.append(t)
-            for t in threads_list:
-                t.join()
-
-            # writing info into console
-            sys.stdout.write("\rCompleted - Alive: {} - Dead: {}         \n".format(self.alive, self.dead))
-            print("")
+                        # writing valid proxy into file
+                        with open(self.output_file, 'a') as f:
+                            f.write(str(proxy[0]) + '\n')
+                except:
+                    self.dead += 1
+                sys.stdout.write(
+                   "\rChecked %{:.2f} - (Alive: {} - Dead: {})".format((self.alive + self.dead) / len(self.proxies) * 100, self.alive, self.dead))
+                sys.stdout.flush()
 
 
-p = ProxyParser()
-p.find_proxies()
+        # proxies are checked in multiple threads
+        threads_list = []
+        for i in range(0, self.threads):
+            t = threading.Thread(target=check_proxies)
+            t.start()
+            threads_list.append(t)
+        for t in threads_list:
+            t.join()
+
+        # writing info into console
+        sys.stdout.write("\rCompleted - Alive: {} - Dead: {}         \n".format(self.alive, self.dead))
+        print("")
