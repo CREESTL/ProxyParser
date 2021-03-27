@@ -2,6 +2,8 @@
 
 I needed a list of working proxies for one of my other projects, but I couldn't find any free ones.
 
-So I created this little  script to parse working proxies from specific web site.
+`proxy_parser.py` parses proxies list from a sprecific site (which is not that good)
+
+`proxy_parser_v2.py` parses proxies from lots of sites which increases the number of working proxies
 
 Just run `main.py` and after a few minutes check generated `valid_proxy.txt`
